@@ -41,7 +41,7 @@ typedef struct {
     int        paren_balance;
 } sh_hl_cxt;
 
-void syntax_sh_highlight_strings_and_expansions(yed_line *line, array_t line_attrs);
+void syntax_sh_highlight_strings_and_expansions(yed_line *line, yed_event *event);
 
 void estyle(yed_event *event)   { yed_syntax_style_event(&syn, event);         }
 void ebuffdel(yed_event *event) { yed_syntax_buffer_delete_event(&syn, event); }
@@ -61,7 +61,7 @@ void eline(yed_event *event)  {
 
     line = yed_buff_get_line(frame->buffer, event->row);
     if (line != NULL) {
-        syntax_sh_highlight_strings_and_expansions(line, event->line_attrs);
+        syntax_sh_highlight_strings_and_expansions(line, event);
     }
 
     yed_syntax_line_event(&syn, event);
@@ -153,7 +153,7 @@ int yed_plugin_boot(yed_plugin *self) {
     return 0;
 }
 
-void syntax_sh_highlight_strings_and_expansions(yed_line *line, array_t line_attrs) {
+void syntax_sh_highlight_strings_and_expansions(yed_line *line, yed_event *event) {
     int        col;
     array_t    stack;
     sh_hl_cxt *cxt, new_cxt;
@@ -178,7 +178,7 @@ void syntax_sh_highlight_strings_and_expansions(yed_line *line, array_t line_att
 
         if (last.c == '\\') {
             if ((cxt = array_last(stack))) {
-                yed_combine_attrs(array_item(line_attrs, col - 1), cxt->attrs);
+                yed_eline_combine_col_attrs(event, col, cxt->attrs);
             }
             goto next;
         }
@@ -187,10 +187,10 @@ void syntax_sh_highlight_strings_and_expansions(yed_line *line, array_t line_att
         &&  g->c == cxt->close) {
             switch (g->c) {
                 case '"':
-                    yed_combine_attrs(array_item(line_attrs, col - 1), cxt->attrs);
+                    yed_eline_combine_col_attrs(event, col, cxt->attrs);
                     break;
                 case '\'':
-                    yed_combine_attrs(array_item(line_attrs, col - 1), cxt->attrs);
+                    yed_eline_combine_col_attrs(event, col, cxt->attrs);
                     break;
                 case ')':
                     if (cxt->is_arith) {
@@ -199,15 +199,15 @@ void syntax_sh_highlight_strings_and_expansions(yed_line *line, array_t line_att
                             goto dont_pop;
                         } else if (col < line->visual_width) {
                             if (yed_line_col_to_glyph(line, col + 1)->c == ')') {
-                                yed_combine_attrs(array_item(line_attrs, col - 1), &num);
-                                yed_combine_attrs(array_item(line_attrs, col), &num);
+                                yed_eline_combine_col_attrs(event, col, &num);
+                                yed_eline_combine_col_attrs(event, col + 1, &num);
                                 col += 1;
                             }
                         }
                         break;
                     } /* else fall through */
                 case '}':
-                    yed_combine_attrs(array_item(line_attrs, col - 1), &con);
+                    yed_eline_combine_col_attrs(event, col, &con);
                     break;
             }
             array_pop(stack);
@@ -232,8 +232,8 @@ dont_pop:;
                         cxt->paren_balance += 1;
                     } else if (col < line->visual_width) {
                         if (yed_line_col_to_glyph(line, col + 1)->c == '(') {
-                            yed_combine_attrs(array_item(line_attrs, col - 1), &num);
-                            yed_combine_attrs(array_item(line_attrs, col), &num);
+                            yed_eline_combine_col_attrs(event, col, &num);
+                            yed_eline_combine_col_attrs(event, col + 1, &num);
                             new_cxt.close         = ')';
                             new_cxt.attrs         = NULL;
                             new_cxt.is_arith      = 1;
@@ -244,7 +244,7 @@ dont_pop:;
                     break;
                 case '$':
                     if (cxt && cxt->close == '\'') {
-                        yed_combine_attrs(array_item(line_attrs, col - 1), cxt->attrs);
+                        yed_eline_combine_col_attrs(event, col, cxt->attrs);
                         goto next;
                     }
 
@@ -252,11 +252,11 @@ dont_pop:;
                         if (yed_line_col_to_glyph(line, col + 1)->c == '(') {
                             if (col < line->visual_width - 1
                             &&  yed_line_col_to_glyph(line, col + 2)->c == '(') {
-                                yed_combine_attrs(array_item(line_attrs, col - 1), &con);
+                                yed_eline_combine_col_attrs(event, col, &con);
                                 goto next;
                             } else {
-                                yed_combine_attrs(array_item(line_attrs, col - 1), &con);
-                                yed_combine_attrs(array_item(line_attrs, col), &con);
+                                yed_eline_combine_col_attrs(event, col, &con);
+                                yed_eline_combine_col_attrs(event, col + 1, &con);
                                 new_cxt.close    = ')';
                                 new_cxt.attrs    = NULL;
                                 new_cxt.is_arith = 0;
@@ -268,7 +268,7 @@ dont_pop:;
                             new_cxt.is_arith = 0;
                             array_push(stack, new_cxt);
                         } else {
-                            yed_combine_attrs(array_item(line_attrs, col - 1), &con);
+                            yed_eline_combine_col_attrs(event, col, &con);
                             while (col + 1 <= line->visual_width
                             &&     !isspace((g = yed_line_col_to_glyph(line, col + 1))->c)
                             &&     g->c != '\''
@@ -277,7 +277,7 @@ dont_pop:;
                             &&     g->c != ')'
                             &&     g->c != '['
                             &&     g->c != ']') {
-                                yed_combine_attrs(array_item(line_attrs, col), &con);
+                                yed_eline_combine_col_attrs(event, col + 1, &con);
                                 col += 1;
                             }
                             goto next;
@@ -290,7 +290,7 @@ dont_pop:;
         cxt = array_last(stack);
 
         if (cxt && cxt->attrs) {
-            yed_combine_attrs(array_item(line_attrs, col - 1), cxt->attrs);
+            yed_eline_combine_col_attrs(event, col, cxt->attrs);
         }
 next:;
         last = *g;
