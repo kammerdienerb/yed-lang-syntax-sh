@@ -235,7 +235,7 @@ dont_pop:;
                     if (cxt && cxt->is_arith) {
                         cxt->paren_balance += 1;
                     } else if (col < line->visual_width) {
-                        if (yed_line_col_to_glyph(line, col + 1)->c == '(') {
+                        if ((cxt == NULL || cxt->attrs == NULL) && yed_line_col_to_glyph(line, col + 1)->c == '(') {
                             yed_eline_combine_col_attrs(event, col, &num);
                             yed_eline_combine_col_attrs(event, col + 1, &num);
                             new_cxt.close         = ')';
