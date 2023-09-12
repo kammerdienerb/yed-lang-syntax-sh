@@ -177,7 +177,7 @@ void syntax_sh_highlight_strings_and_expansions(yed_line *line, yed_event *event
         if (!cxt && g->c == '#') { goto cleanup; }
 
         if (last.c == '\\') {
-            if ((cxt = array_last(stack))) {
+            if ((cxt = array_last(stack)) && cxt->attrs) {
                 yed_eline_combine_col_attrs(event, col, cxt->attrs);
             }
             goto next;
@@ -187,10 +187,14 @@ void syntax_sh_highlight_strings_and_expansions(yed_line *line, yed_event *event
         &&  g->c == cxt->close) {
             switch (g->c) {
                 case '"':
-                    yed_eline_combine_col_attrs(event, col, cxt->attrs);
+                    if (cxt->attrs) {
+                        yed_eline_combine_col_attrs(event, col, cxt->attrs);
+                    }
                     break;
                 case '\'':
-                    yed_eline_combine_col_attrs(event, col, cxt->attrs);
+                    if (cxt->attrs) {
+                        yed_eline_combine_col_attrs(event, col, cxt->attrs);
+                    }
                     break;
                 case ')':
                     if (cxt->is_arith) {
@@ -244,7 +248,9 @@ dont_pop:;
                     break;
                 case '$':
                     if (cxt && cxt->close == '\'') {
-                        yed_eline_combine_col_attrs(event, col, cxt->attrs);
+                        if (cxt->attrs) {
+                            yed_eline_combine_col_attrs(event, col, cxt->attrs);
+                        }
                         goto next;
                     }
 
