@@ -310,7 +310,7 @@ dont_pop:;
             yed_eline_combine_col_attrs(event, col, cxt->attrs);
         }
 next:;
-        last = *g;
+        last = yed_glyph_copy(g);
     }
 
 cleanup:
