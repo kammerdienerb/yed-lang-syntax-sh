@@ -181,7 +181,7 @@ void syntax_sh_highlight_strings_and_expansions(yed_line *line, yed_event *event
     con   = yed_active_style_get_code_constant();
     num   = yed_active_style_get_code_number();
     cxt   = NULL;
-    last  = G(0);
+    last  = yed_glyph_copy(GLYPH(""));
     for (col = 1; col <= line->visual_width; col += 1) {
         g = yed_line_col_to_glyph(line, col);
 
