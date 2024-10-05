@@ -287,15 +287,22 @@ dont_pop:;
                         } else {
                             yed_eline_combine_col_attrs(event, col, &con);
                             while (col + 1 <= line->visual_width
-                            &&     !isspace((g = yed_line_col_to_glyph(line, col + 1))->c)
-                            &&     g->c != '\''
-                            &&     g->c != '"'
-                            &&     g->c != '('
-                            &&     g->c != ')'
-                            &&     g->c != '['
-                            &&     g->c != ']') {
+                            &&     (g = yed_line_col_to_glyph(line, col + 1))->c
+                            &&     (   is_alnum(g->c)
+                                    || g->c == '@'
+                                    || g->c == '*'
+                                    || g->c == '#'
+                                    || g->c == '$'
+                                    || g->c == '!'
+                                    || g->c == '?')) {
+
                                 yed_eline_combine_col_attrs(event, col + 1, &con);
+
                                 col += 1;
+
+                                if (g->c == '@' || g->c == '*' || g->c == '#'  || g->c == '$' || g->c == '!' || g->c == '?') {
+                                    break;
+                                }
                             }
                             goto next;
                         }
