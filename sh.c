@@ -289,6 +289,7 @@ dont_pop:;
                             while (col + 1 <= line->visual_width
                             &&     (g = yed_line_col_to_glyph(line, col + 1))->c
                             &&     (   is_alnum(g->c)
+                                    || g->c == '_'
                                     || g->c == '@'
                                     || g->c == '*'
                                     || g->c == '#'
@@ -300,7 +301,7 @@ dont_pop:;
 
                                 col += 1;
 
-                                if (g->c == '@' || g->c == '*' || g->c == '#'  || g->c == '$' || g->c == '!' || g->c == '?') {
+                                if (g->c == '_' || g->c == '@' || g->c == '*' || g->c == '#'  || g->c == '$' || g->c == '!' || g->c == '?') {
                                     break;
                                 }
                             }
